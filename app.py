@@ -11,7 +11,6 @@ from flask import (
 )
 from datetime import datetime
 import requests
-from kiteconnect import KiteConnect
 import threading
 import time
 import robin_stocks.robinhood as r
@@ -260,9 +259,4 @@ def run_app(port):
     app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False)
 
 if __name__ == "__main__":
-    start_port = 8000
-    end_port = 8005
-
-    for port in range(start_port, end_port + 1):
-        thread = threading.Thread(target=run_app, args=(port,))
-        thread.start()
+    run_app(9000)
