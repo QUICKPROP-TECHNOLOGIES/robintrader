@@ -14,7 +14,7 @@ import requests
 from kiteconnect import KiteConnect
 import threading
 import time
-
+import robin_stocks.robinhood as r
 class User: 
     def __init__(self, id, username, password):
         self.id = id
@@ -205,83 +205,16 @@ def get_last_traded_price_and_profit_loss():
         return ('', 404)
 @app.route('/place_buy_order', methods=['POST'])
 def place_buy_order():
-    kite = KiteConnect(api_key=api_key)
-    kite.set_access_token(access_token)
+
 
     stock_symbol = request.form['stockSymbolBuy']
     quantity = int(request.form['quantity'])
 
-    # Define order details for a market buy order
-    order_details = {
-        "tradingsymbol": stock_symbol,
-        "exchange": "NSE",
-        "transaction_type": "BUY",
-        "quantity": quantity,
-        "order_type": "MARKET",
-        "product": "MIS"
-    }
+    # Define order details for a market buy orde
 
     try:
-        last_traded_price = get_last_traded_price(stock_symbol)
-        order_id = kite.place_order(variety=kite.VARIETY_REGULAR, **order_details)
-        trade_details = kite.order_trades(order_id)  # Fetch trade details
-        profit_loss = p_n_l
-        quantity = quantity
-
-        if trade_details:
-            average_price = trade_details[0]['average_price']
-
-            if last_traded_price is not None:
-                if order_details['transaction_type'] == 'BUY':
-                    profit_loss = (last_traded_price - average_price) * quantity
-
-                    if average_price != 0:
-                        change_percentage = ((last_traded_price - average_price) / average_price) * 100
-                    else:
-                        change_percentage = 0.0
-
-                executed_orders.append({
-                    'type': 'BUY',
-                    'symbol': stock_symbol,
-                    'quantity': quantity,
-                    'order_id': order_id,
-                    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    'product': order_details['product'],
-                    'average_price': average_price,
-                    'status': 'Complete'
-                })
-
-                # Fetch position details
-                positions = kite.positions()['day']
-                
-                # Update the position's average price
-                for position in positions:
-                    if position['tradingsymbol'] == stock_symbol:
-                        existing_position = next((p for p in position_details if p['symbol'] == stock_symbol), None)
-
-                        if existing_position:
-                            # Update the existing position with the new buy details
-                            #existing_position['quantity'] += quantity
-                            existing_position['average_price'] = position['average_price']
-                        else:
-                            # Create a new position for the stock if it doesn't exist
-                            position_details.append({
-                                'product': order_details['product'],
-                                'type': 'Buy',
-                                'symbol': stock_symbol,
-                                'quantity': quantity,
-                                'average_price': position['average_price'],
-                                'last_traded_price': last_traded_price,
-                                'profit_loss': profit_loss,
-                                'change': change_percentage
-                            })
-
-                return render_template('trade.html', order_confirmation=f"Buy order placed successfully. Order ID: {order_id}")
-
-            else:
-                result = "Error fetching last traded price."
-        else:
-            result = "Error fetching trade details."
+        order_id = r.order_buy_market(stock_symbol, quantity )
+        return render_template('trade.html', order_confirmation=f"Buy order placed successfully. Order ID: {order_id}")
 
     except Exception as e:
         result = f"Error placing buy order: {e}"
@@ -291,84 +224,19 @@ def place_buy_order():
 
 @app.route('/place_sell_order', methods=['POST'])
 def place_sell_order():
-    kite = KiteConnect(api_key=api_key)
-    kite.set_access_token(access_token)
-
-    stock_symbol = request.form['stockSymbolSell']
+    stock_symbol = request.form['stockSymbolBuy']
     quantity = int(request.form['quantity'])
 
-    # Define order details for a market sell order
-    order_details = {
-        "tradingsymbol": stock_symbol,
-        "exchange": "NSE",
-        "transaction_type": "SELL",
-        "quantity": quantity,
-        "order_type": "MARKET",
-        "product": "MIS"
-    }
+    # Define order details for a market buy orde
 
     try:
-        last_traded_price = get_last_traded_price(stock_symbol)
-        order_id = kite.place_order(variety=kite.VARIETY_REGULAR, **order_details)
-        trade_details = kite.order_trades(order_id)  # Fetch trade details
-        profit_loss = p_n_l
-        quantity = quantity
-
-        if trade_details:
-            average_price = trade_details[0]['average_price']
-
-            if last_traded_price is not None:
-                if order_details['transaction_type'] == 'SELL':
-                    profit_loss = (average_price - last_traded_price) * quantity
-
-                    if average_price != 0:
-                        change_percentage = ((average_price - last_traded_price) / average_price) * 100
-                    else:
-                        change_percentage = 0.0
-
-                executed_orders.append({
-                    'type': 'SELL',
-                    'symbol': stock_symbol,
-                    'quantity': quantity,
-                    'order_id': order_id,
-                    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    'product': order_details['product'],
-                    'average_price': average_price,
-                    'status': 'Complete'
-                })
-                existing_position = next((p for p in position_details if p['symbol'] == stock_symbol), None)
-
-                if existing_position:
-                    # Update the existing position with the new sell details
-                    #existing_position['quantity'] -= quantity
-                    existing_position['average_price'] = average_price
-                    existing_position['profit_loss'] = profit_loss
-                    existing_position['change_percentage'] = change_percentage
-
-                else:
-                    # Create a new position for the stock if it doesn't exist (this should not typically happen for a sell order)
-                    position_details.append({
-                        'product': order_details['product'],
-                        'type': 'Sell',
-                        'symbol': stock_symbol,
-                        'quantity': quantity,  # Indicate a sell with negative quantity
-                        'average_price': average_price,
-                        'last_traded_price': last_traded_price,
-                        'profit_loss': p_n_l,
-                        'change_percentage': change_percentage
-                    })
-                return render_template('trade.html', order_confirmation=f"Sell order placed successfully. Order ID: {order_id}")
-            else:
-                result = "Error fetching last traded price."
-        else:
-            result = "Error fetching trade details."
-
-            return render_template('trade.html', error_message=result)
+        order_id = r.order_sell_market(stock_symbol, quantity )
+        return render_template('trade.html', order_confirmation=f"Buy order placed successfully. Order ID: {order_id}")
 
     except Exception as e:
-        result = f"Error placing sell order: {e}"
+        result = f"Error placing buy order: {e}"
 
-    return result
+    return render_template('trade.html', error_message=result)
 
 
 @app.route('/position_details')
