@@ -174,7 +174,6 @@ def get_last_traded_price_and_profit_loss():
     if position:
         average_price = position['average_price']
         #quantity = position['quantity']
-
         # Calculate profit/loss and change percentage
         if position['type'] == 'Buy':
             profit_loss = (last_traded_price - average_price) * quantity
@@ -182,7 +181,6 @@ def get_last_traded_price_and_profit_loss():
             profit_loss = (average_price - last_traded_price) * quantity
         else:
             profit_loss = (average_price - last_traded_price) * quantity
-
         # Calculate change percentage
         if average_price != 0:
             change_percentage = ((last_traded_price - average_price) / average_price) * 100
@@ -204,37 +202,27 @@ def get_last_traded_price_and_profit_loss():
         return ('', 404)
 @app.route('/place_buy_order', methods=['POST'])
 def place_buy_order():
-
-
     stock_symbol = request.form['stockSymbolBuy']
     quantity = int(request.form['quantity'])
-
     # Define order details for a market buy orde
-
     try:
         order_id = r.order_buy_market(stock_symbol, quantity )
         return render_template('trade.html', order_confirmation=f"Buy order placed successfully. Order ID: {order_id}")
-
     except Exception as e:
         result = f"Error placing buy order: {e}"
-
     return render_template('trade.html', error_message=result)
 
 
 @app.route('/place_sell_order', methods=['POST'])
 def place_sell_order():
-    stock_symbol = request.form['stockSymbolBuy']
+    stock_symbol = request.form['stockSymbolSell']
     quantity = int(request.form['quantity'])
-
     # Define order details for a market buy orde
-
     try:
         order_id = r.order_sell_market(stock_symbol, quantity )
         return render_template('trade.html', order_confirmation=f"Buy order placed successfully. Order ID: {order_id}")
-
     except Exception as e:
         result = f"Error placing buy order: {e}"
-
     return render_template('trade.html', error_message=result)
 
 
